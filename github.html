@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحلیل و تبدیل کانفیگ‌های VPN - نسخه پیشرفته</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font/dist/font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --secondary: #008CBA;
+            --accent: #FF5733;
+            --bg-light: #f9f9f9;
+            --text-dark: #333;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --error: #e74c3c;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Vazir', Arial, sans-serif;
+            background: linear-gradient(135deg, #e0eafc, #cfdef3);
+            min-height: 100vh;
+            padding: 2rem;
+            color: var(--text-dark);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-dark);
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .url-section {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        #urlInput {
+            width: 100%;
+            padding: 1rem 4rem 1rem 1.5rem;
+            border: none;
+            border-radius: 50px;
+            background: var(--bg-light);
+            font-size: 1rem;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        #urlInput:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+            background: #fff;
+        }
+
+        .url-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .url-icon:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        #configFile, #configInput {
+            width: 100%;
+            margin: 1rem 0;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: var(--bg-light);
+        }
+
+        #configInput {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        button.primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        button.secondary {
+            background: var(--secondary);
+            color: #fff;
+        }
+
+        button.accent {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        #progress-container {
+            width: 100%;
+            background: #ddd;
+            border-radius: 20px;
+            height: 20px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        #status {
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .log-section {
+            margin: 1rem 0;
+            display: none;
+        }
+
+        #log-toggle {
+            background: #6c757d;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        #log-container {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: var(--bg-light);
+            font-size: 0.9rem;
+        }
+
+        .log-item.error {
+            color: var(--error);
+        }
+
+        #output-container {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: var(--bg-light);
+            margin: 1.5rem 0;
+        }
+
+        .config-item {
+            margin: 0.5rem 0;
+            word-break: break-all;
+            font-size: 0.9rem;
+        }
+
+        .country-filter {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        #country-select {
+            flex: 1;
+            padding: 0.8rem;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            background: var(--bg-light);
+            font-size: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تحلیل و تبدیل کانفیگ‌های VPN</h1>
+        <div class="url-section">
+            <input type="text" id="urlInput" placeholder="لینک کانفیگ‌ها رو اینجا وارد کن...">
+            <span class="url-icon">🔗</span>
+        </div>
+        <input type="file" id="configFile" accept=".txt">
+        <textarea id="configInput" placeholder="هر خط یه کانفیگ..."></textarea>
+        <button class="primary" onclick="processConfigs()">شروع پردازش</button>
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+        <div id="status"></div>
+        <div class="log-section" id="log-section">
+            <div id="log-toggle" onclick="toggleLogs()">نمایش لاگ‌ها</div>
+            <div id="log-container"></div>
+        </div>
+        <div id="output-container"></div>
+        <button class="secondary" id="copy-all-btn" onclick="copyAllConfigs()" style="display: none;">کپی همه کانفیگ‌ها</button>
+        <button class="accent" id="download-btn" onclick="downloadConfigs()" style="display: none;">دانلود کانفیگ‌ها</button>
+        <div class="country-filter" id="country-filter">
+            <select id="country-select"></select>
+            <button class="primary" id="copy-country-btn" onclick="copyCountryConfigs()">کپی کانفیگ‌های کشور</button>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            processedConfigs: [],
+            configsByCountry: {},
+            logs: [],
+        };
+
+        const elements = {
+            urlInput: document.getElementById('urlInput'),
+            configFile: document.getElementById('configFile'),
+            configInput: document.getElementById('configInput'),
+            progressBar: document.getElementById('progress-bar'),
+            status: document.getElementById('status'),
+            logSection: document.getElementById('log-section'),
+            logContainer: document.getElementById('log-container'),
+            outputContainer: document.getElementById('output-container'),
+            copyAllBtn: document.getElementById('copy-all-btn'),
+            downloadBtn: document.getElementById('download-btn'),
+            countryFilter: document.getElementById('country-filter'),
+            countrySelect: document.getElementById('country-select'),
+        };
+
+        const utils = {
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            },
+            countryToFlag(countryCode) {
+                if (!countryCode || countryCode === 'Unknown') return '🏳️';
+                return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+            },
+            encodeBase64(str) {
+                const utf8Bytes = new TextEncoder().encode(str);
+                return btoa(String.fromCharCode(...utf8Bytes));
+            },
+            log(message, isError = false) {
+                state.logs.push({ message, isError });
+                const logItem = document.createElement('div');
+                logItem.className = `log-item ${isError ? 'error' : ''}`;
+                logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                elements.logContainer.appendChild(logItem);
+                elements.logContainer.scrollTop = elements.logContainer.scrollHeight;
+                elements.logSection.style.display = 'block';
+            },
+        };
+
+        async function getConfigs() {
+            if (elements.urlInput.value) {
+                try {
+                    const response = await fetch(elements.urlInput.value, { mode: 'cors' });
+                    const text = await response.text();
+                    utils.log('دریافت کانفیگ‌ها از URL با موفقیت انجام شد.');
+                    return await processUrlContent(text);
+                } catch (e) {
+                    utils.log(`خطا در دریافت URL: ${e.message}`, true);
+                    return [];
+                }
+            } else if (elements.configFile.files.length > 0) {
+                const file = elements.configFile.files[0];
+                const text = await file.text();
+                utils.log('دریافت کانفیگ‌ها از فایل با موفقیت انجام شد.');
+                return text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+            } else if (elements.configInput.value) {
+                utils.log('دریافت کانفیگ‌ها از ورودی متنی با موفقیت انجام شد.');
+                return elements.configInput.value.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+            }
+            utils.log('لطفاً یه روش برای وارد کردن کانفیگ انتخاب کن!', true);
+            return [];
+        }
+
+        async function processUrlContent(text) {
+            try {
+                const decoded = atob(text);
+                utils.log('محتوای URL به صورت Base64 دیکد شد.');
+                return decoded.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+            } catch {
+                utils.log('محتوای URL به صورت معمولی پردازش شد.');
+                return text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+            }
+        }
+
+        async function processConfigs() {
+            const configs = await getConfigs();
+            if (!configs.length) return;
+
+            resetUI();
+            const total = configs.length;
+
+            for (let i = 0; i < total; i++) {
+                const config = configs[i];
+                try {
+                    const { newConfig, countryCode } = await analyzeConfig(config);
+                    state.processedConfigs.push(newConfig);
+                    displayConfig(newConfig);
+                    categorizeByCountry(newConfig, countryCode);
+                    utils.log(`کانفیگ ${i + 1} با موفقیت پردازش شد.`);
+                } catch (e) {
+                    utils.log(`خطا در پردازش کانفیگ ${i + 1}: ${e.message}`, true);
+                    state.processedConfigs.push(config);
+                    displayConfig(config);
+                }
+
+                updateProgress((i + 1) / total * 100, i + 1, total);
+                await utils.sleep(500);
+            }
+
+            finalizeProcessing();
+        }
+
+        async function analyzeConfig(config) {
+            const protocols = ['vmess://', 'vless://', 'ss://', 'trojan://', 'wireguard://', 'hysteria2://'];
+            const protocol = protocols.find(p => config.startsWith(p));
+            if (!protocol) {
+                utils.log(`پروتکل کانفیگ پشتیبانی نمی‌شود: ${config.slice(0, 20)}...`, true);
+                return { newConfig: config, countryCode: 'Unknown' };
+            }
+
+            const ipOrDomain = getLocationData(config, protocol).ipOrDomain;
+            const countryCode = extractCountryFromConfig(config) || 'Unknown';
+            const newName = `${utils.countryToFlag(countryCode)} ${countryCode} ${ipOrDomain || 'Server'}`;
+
+            switch (protocol) {
+                case 'vmess://':
+                    const vmessData = parseVmess(config);
+                    if (!vmessData) throw new Error('خطا در دیکود vmess');
+                    return { newConfig: `vmess://${utils.encodeBase64(JSON.stringify({ ...vmessData, ps: newName }))}`, countryCode };
+                case 'hysteria2://':
+                    return { newConfig: `${config.split('#')[0]}#${newName}`, countryCode };
+                default:
+                    return { newConfig: `${config.split('#')[0]}#${newName}`, countryCode };
+            }
+        }
+
+        function extractCountryFromConfig(config) {
+            const domain = config.match(/@([a-zA-Z0-9.-]+)/)?.[1];
+            if (!domain) return null;
+            const tld = domain.split('.').pop().toUpperCase();
+            return tld.length === 2 ? tld : 'Unknown';
+        }
+
+        function getLocationData(config, protocol) {
+            const parts = config.split('@')[1]?.split(/[#?]/)[0]?.split(':');
+            return { ipOrDomain: parts?.[0] || '' };
+        }
+
+        function parseVmess(link) {
+            try {
+                return JSON.parse(atob(link.slice(8)));
+            } catch {
+                return null;
+            }
+        }
+
+        function resetUI() {
+            elements.outputContainer.innerHTML = '';
+            elements.copyAllBtn.style.display = 'none';
+            elements.downloadBtn.style.display = 'none';
+            elements.countryFilter.style.display = 'none';
+            elements.logContainer.innerHTML = '';
+            state.logs = [];
+            state.processedConfigs = [];
+            state.configsByCountry = {};
+        }
+
+        function updateProgress(percent, current, total) {
+            elements.progressBar.style.width = `${percent}%`;
+            elements.progressBar.textContent = `${Math.round(percent)}%`;
+            elements.status.textContent = `در حال پردازش: ${current} از ${total}`;
+        }
+
+        function displayConfig(config) {
+            const div = document.createElement('div');
+            div.className = 'config-item';
+            div.textContent = config;
+            elements.outputContainer.appendChild(div);
+        }
+
+        function categorizeByCountry(config, countryCode) {
+            state.configsByCountry[countryCode] = state.configsByCountry[countryCode] || [];
+            state.configsByCountry[countryCode].push(config);
+        }
+
+        function finalizeProcessing() {
+            elements.status.textContent = 'پردازش تموم شد!';
+            elements.copyAllBtn.style.display = 'block';
+            elements.downloadBtn.style.display = 'block';
+            setupCountryFilter();
+        }
+
+        function setupCountryFilter() {
+            elements.countrySelect.innerHTML = '';
+            const countries = Object.keys(state.configsByCountry);
+            if (countries.length) {
+                countries.forEach(country => {
+                    const option = document.createElement('option');
+                    option.value = country;
+                    option.textContent = `${utils.countryToFlag(country)} ${country === 'Unknown' ? 'ناشناخته' : country}`;
+                    elements.countrySelect.appendChild(option);
+                });
+                elements.countryFilter.style.display = 'flex';
+            }
+        }
+
+        function toggleLogs() {
+            const logContainer = elements.logContainer;
+            logContainer.style.display = logContainer.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function copyAllConfigs() {
+            if (!state.processedConfigs.length) {
+                utils.log('هیچ کانفیگی برای کپی وجود ندارد!', true);
+                return;
+            }
+            const textToCopy = state.processedConfigs.join('\n');
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                utils.log('همه کانفیگ‌ها با موفقیت کپی شدند.');
+                alert('همه کانفیگ‌ها کپی شدند!');
+            }).catch(err => {
+                utils.log(`خطا در کپی: ${err.message}`, true);
+            });
+        }
+
+        function copyCountryConfigs() {
+            const country = elements.countrySelect.value;
+            if (!state.configsByCountry[country]?.length) {
+                utils.log(`هیچ کانفیگی برای ${country} وجود ندارد!`, true);
+                return;
+            }
+            const textToCopy = state.configsByCountry[country].join('\n');
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                utils.log(`کانفیگ‌های ${country} با موفقیت کپی شدند.`);
+                alert(`کانفیگ‌های ${country === 'Unknown' ? 'ناشناخته' : country} کپی شدند!`);
+            }).catch(err => {
+                utils.log(`خطا در کپی: ${err.message}`, true);
+            });
+        }
+
+        function downloadConfigs() {
+            if (!state.processedConfigs.length) {
+                utils.log('هیچ کانفیگی برای دانلود وجود ندارد!', true);
+                return;
+            }
+            const blob = new Blob([state.processedConfigs.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'vpn_configs.txt';
+            link.click();
+            utils.log('کانفیگ‌ها با موفقیت دانلود شدند.');
+        }
+    </script>
+</body>
+</html>
