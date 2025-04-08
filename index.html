@@ -371,9 +371,9 @@
                 return { newConfig: config, countryCode: 'Unknown' };
             }
 
-            const ipOrDomain = getLocationData(config, protocol).ipOrDomain;
-            const countryCode = extractCountryFromConfig(config) || 'Unknown';
-            const newName = `${utils.countryToFlag(countryCode)} ${countryCode} ${ipOrDomain || 'Server'}`;
+            const { ipOrDomain } = getLocationData(config, protocol);
+            const { name, countryCode } = await getLocation(ipOrDomain);
+            const newName = name;
 
             switch (protocol) {
                 case 'vmess://':
@@ -387,11 +387,50 @@
             }
         }
 
-        function extractCountryFromConfig(config) {
-            const domain = config.match(/@([a-zA-Z0-9.-]+)/)?.[1];
-            if (!domain) return null;
-            const tld = domain.split('.').pop().toUpperCase();
-            return tld.length === 2 ? tld : 'Unknown';
+        async function getLocation(ipOrDomain) {
+            const apis = [
+                {
+                    url: `http://ip-api.com/json/${ipOrDomain}?fields=countryCode,country,city`,
+                    parse: (data) => ({
+                        countryCode: data.countryCode || 'Unknown',
+                        country: data.country || 'Unknown',
+                        city: data.city || 'Unknown',
+                    }),
+                },
+                {
+                    url: `https://freegeoip.app/json/${ipOrDomain}`,
+                    parse: (data) => ({
+                        countryCode: data.country_code || 'Unknown',
+                        country: data.country_name || 'Unknown',
+                        city: data.region_name || 'Unknown',
+                    }),
+                },
+                {
+                    url: `https://json.geoiplookup.net/api/${ipOrDomain}`,
+                    parse: (data) => ({
+                        countryCode: data.country_code || 'Unknown',
+                        country: data.country_name || 'Unknown',
+                        city: data.city || 'Unknown',
+                    }),
+                },
+            ];
+
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api.url, { mode: 'cors' });
+                    const data = await response.json();
+                    const { countryCode, country, city } = api.parse(data);
+                    if (countryCode === 'Unknown' || !country || !city) continue;
+
+                    const flag = countryCode === 'Unknown' ? '🏳️' : countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+                    utils.log(`مکان از ${api.url} دریافت شد: ${flag} ${country} ${city}`);
+                    return { name: `${flag} ${country} ${city}`, countryCode };
+                } catch (e) {
+                    utils.log(`خطا در دریافت مکان از ${api.url}: ${e.message}`, true);
+                }
+            }
+            utils.log(`هیچ API در دسترس نبود، پیش‌فرض استفاده شد.`);
+            return { name: '🏳️ Unknown Server', countryCode: 'Unknown' };
         }
 
         function getLocationData(config, protocol) {
